@@ -1,87 +1,60 @@
-//comment comment2
+#include <Arduino_AVRSTL.h>
+#include <SoftwareSerial.h>
+using namespace std;
 
-void setup(){
-Serial.begin(9600);
-Serial.println("CLEARDATA");
-Serial.println("LABEL,Date,Time,Data");
-Serial.println("RESETTIMER");
-pinMode(7, OUTPUT);
-
-}
- int timer = 0;
-
- int a = 0;
- int max = 0;
- int counter = 0;
- int stopcar = 0;
- int starttime = 0;
- int mincount = 0; 
- int maxcount = 0; 
- int minfind = 1200;
- int maxfind = 0;
-void loop(){
-int sensorValue = analogRead(A0);
-int minprev = sensorValue;
-if (minfind > minprev){
-  minfind = minprev; 
-  mincount = 0;
-  digitalWrite(7, HIGH);
-  
-}
-else{
-  mincount++;
+void setup() {
+    Serial.begin(9600);
+    pinMode(7, OUTPUT);
+    digitalWrite(7, HIGH);
+    Serial.println("TIME,READING");
+    last_10.resize(10);
 }
 
-if (mincount > 120){
-  digitalWrite(7, LOW);
-  if (1010 <= sensorValue){
-    maxfind = sensorValue; 
-    timer = 9999;
-   
-  }
-Serial.print(","); Serial.println("SCROLLDATA_20");
-
-}
+int interval = 100;  // milliseconds
 int timer = 0;
 
-int a = 0;
-int max = 0;
-int counter = 0;
-int stopcar = 0;
-int starttime = 0;
-int mincount = 0;
-int maxcount = 0;
-int minfind = 1200;
-int maxfind = 0;
+int falling_count = 0;
+int last_avg = INT32_MAX;
+int time_start_val = 0;
+
+vector<int> last_10;
+
 void loop() {
-    int sensorValue = analogRead(A0);
-    int minprev = sensorValue;
-    if (minfind > minprev) {
-        minfind = minprev;
-        mincount = 0;
-        digitalWrite(7, HIGH);
+    int sensor_val = analogRead(A0);
+    last_10.erase(0);
+    last_10.push_back(sensor_val);
+    int avg = rolling_average();
 
+    if (avg <= last_avg) {
+        last_avg = avg;
+        ++falling_count;
     } else {
-        mincount++;
+        falling_count = 0;
     }
 
-    if (mincount > 120) {
+    if (falling_count > 100 && sensor_val <= 1100) {
         digitalWrite(7, LOW);
-        if (1010 <= sensorValue) {
-            maxfind = sensorValue;
-            timer = 9999;
-        }
-        Serial.print(",");
-        Serial.println("SCROLLDATA_20");
+        time_start_val = sensor_val;
+        Serial.println();
+        Serial.println("TIMER STARTED");
+        timing();
     }
 
-    Serial.print("DATA,DATE,TIME,");
-    Serial.print(sensorValue);
+    Serial.println(timer + "," + sensor_val);
 
-    Serial.print(",");
-    Serial.println(timer++);
+    delay(interval);
+    timer += interval / 1000;
+}
 
-    // Serial.println(sensorValue);
-    // Serial.println(timer);
-    delay(1000);
+int rolling_average() {
+    int sum = 0;
+    for (int x : last_10) {
+        sum += x;
+    }
+    return sum / 10;
+}
+
+void timing() {
+    timer = 0;
+    while (true) {}
 }
