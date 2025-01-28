@@ -4,7 +4,7 @@
 #define WINDOW_SIZE 35
 #define PHOTORESISTOR_PIN A0
 #define VALVE_PIN A7
-#define VALVE_PIN_LIMIT 1000
+#define VALVE_PIN_LIMIT 1015
 #define RELAY_PIN 6
 
 float value_avg_buffer[WINDOW_SIZE];
@@ -89,6 +89,10 @@ void real_loop() {
 
     Serial.println(String(time) + ", " + String(value) + ", " + String(slope));
 
+    if (time - valve_open_time >= 20){
+        Serial.println("Stopped recording data");
+        time_car(time_of_biggest_slope);
+    }
     if (car_timed) {
         return;
     }
@@ -106,10 +110,11 @@ void real_loop() {
         time_of_biggest_slope = time;
     }
 
-    if (abs(slope) > slope_limit && slope < biggest_slope) {
-        Serial.println("Stopped recording data");
-        time_car(time_of_biggest_slope);
-    }
+
+    // if (abs(slope) > slope_limit && slope < biggest_slope) {
+    //     Serial.println("Stopped recording data");
+    //     time_car(time_of_biggest_slope);
+    // }
 }
 
 void time_car(float time_of_biggest_slope) {
