@@ -89,7 +89,7 @@ void real_loop() {
 
     Serial.println(String(time) + ", " + String(value) + ", " + String(slope));
 
-    if (time - valve_open_time >= 20){
+    if (time - valve_open_time >= 25){
         Serial.println("Stopped recording data");
         time_car(time_of_biggest_slope);
     }
