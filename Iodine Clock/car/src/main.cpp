@@ -27,6 +27,7 @@ float lntmax = 2.00;
 bool car_timed = false;
 float car_start_delay = 2;
 
+
 void real_setup();
 void real_loop();
 void data_setup();
@@ -41,7 +42,10 @@ void loop() {
     real_loop();
 }
 
+
+
 void real_setup() {
+    
     Serial.begin(9600);
     pinMode(VALVE_PIN, INPUT);
     pinMode(RELAY_PIN, OUTPUT);
@@ -65,18 +69,18 @@ void real_loop() {
     // digitalWrite(RELAY_PIN, HIGH);
     // delay(999999);
 
-    if (valve_open_time == 0) {
-        if (analogRead(VALVE_PIN) < VALVE_PIN_LIMIT) {
-            return;
-        } else {
-            delay(5);
-            if (analogRead(VALVE_PIN) < VALVE_PIN_LIMIT) {
-                return;
-            }
-            valve_open_time = float(millis()) / 1000;
-            Serial.println("Valve Opened");
-        }
-    }
+    // if (valve_open_time == 0) {
+    //     if (analogRead(VALVE_PIN) < VALVE_PIN_LIMIT) {
+    //         return;
+    //     } else {
+    //         delay(5);
+    //         if (analogRead(VALVE_PIN) < VALVE_PIN_LIMIT) {
+    //             return;
+    //         }
+    //         valve_open_time = float(millis()) / 1000;
+    //         Serial.println("Valve Opened");
+    //     }
+    // }
 
     float time = float(millis()) / 1000;
     float value = float(analogRead(PHOTORESISTOR_PIN));
@@ -87,9 +91,9 @@ void real_loop() {
     time_buffer[index] = time;
     index = (index + 1) % WINDOW_SIZE;
 
-    Serial.println(String(time) + ", " + String(value) + ", " + String(slope));
+    Serial.println(String(time - valve_open_time) + ", " + String(value) + ", " + String(slope));
 
-    if (time - valve_open_time >= 25){
+    if (time - valve_open_time >= 35){
         Serial.println("Stopped recording data");
         time_car(time_of_biggest_slope);
     }
