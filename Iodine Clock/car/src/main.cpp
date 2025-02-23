@@ -66,21 +66,21 @@ void real_setup() {
 }
 
 void real_loop() {
-    // digitalWrite(RELAY_PIN, HIGH);
-    // delay(999999);
+    digitalWrite(RELAY_PIN, HIGH);
+    delay(999999);
 
-    // if (valve_open_time == 0) {
-    //     if (analogRead(VALVE_PIN) < VALVE_PIN_LIMIT) {
-    //         return;
-    //     } else {
-    //         delay(5);
-    //         if (analogRead(VALVE_PIN) < VALVE_PIN_LIMIT) {
-    //             return;
-    //         }
-    //         valve_open_time = float(millis()) / 1000;
-    //         Serial.println("Valve Opened");
-    //     }
-    // }
+    if (valve_open_time == 0) {
+        if (analogRead(VALVE_PIN) < VALVE_PIN_LIMIT) {
+            return;
+        } else {
+            delay(5);
+            if (analogRead(VALVE_PIN) < VALVE_PIN_LIMIT) {
+                return;
+            }
+            valve_open_time = float(millis()) / 1000;
+            Serial.println("Valve Opened");
+        }
+    }
 
     float time = float(millis()) / 1000;
     float value = float(analogRead(PHOTORESISTOR_PIN));
