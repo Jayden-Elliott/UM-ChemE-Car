@@ -66,8 +66,8 @@ void real_setup() {
 }
 
 void real_loop() {
-    digitalWrite(RELAY_PIN, HIGH);
-    delay(999999);
+    // digitalWrite(RELAY_PIN, HIGH);
+    // delay(999999);
 
     if (valve_open_time == 0) {
         if (analogRead(VALVE_PIN) < VALVE_PIN_LIMIT) {
@@ -93,7 +93,7 @@ void real_loop() {
 
     Serial.println(String(time - valve_open_time) + ", " + String(value) + ", " + String(slope));
 
-    if (time - valve_open_time >= 35){
+    if (time - valve_open_time >= 45){
         Serial.println("Stopped recording data");
         time_car(time_of_biggest_slope);
     }
