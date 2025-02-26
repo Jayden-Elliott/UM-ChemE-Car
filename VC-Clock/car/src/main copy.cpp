@@ -32,7 +32,7 @@ enum PROGRAM {
 #define SLOPE_GRACE_PERIOD 2
 
 /*----------------------------   CHEMICAL CALIBRATION CONSTANTS   ------------------------------*/
-#define CAR_SPEED 0.44  // m/s
+#define CAR_SPEED .397  // m/s
 
 #define LOG_TIME_MIN 3.01
 #define LOG_TIME_MAX 2.00
