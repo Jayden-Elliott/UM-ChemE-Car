@@ -2,7 +2,7 @@
 // #include <SoftwareSerial.h>
 
 // #define WINDOW_SIZE 35
-// #define TEST_PIN 6
+// #define TEST_PIN 2
 
 // void setup() {
 //     pinMode(TEST_PIN, OUTPUT);

@@ -5,7 +5,7 @@
 #define PHOTORESISTOR_PIN_IN A0
 #define VALVE_SWITCH_PIN_IN A1 //7
 #define VALVE_PIN_LIMIT 1015
-#define RELAY_PIN_OUT 6
+#define RELAY_PIN_OUT 2
 
 enum PROGRAM {
     //Run the Whole program
@@ -25,17 +25,17 @@ enum PROGRAM {
 //Average Window size - Smaller: Faster Detection; Bigger: Resistant to Anomalies; Default: 35;
 #define AVERAGE_WINDOW_SIZE 35
 //Slope that will trigger the car movement
-#define SLOPE_LIMIT 60
+#define SLOPE_LIMIT 50
 //IF TESTING, SECONDS TO TEST
-#define TEST_TIME 50
+#define TEST_TIME 1000
 //minimum time before car starts to run
-#define SLOPE_GRACE_PERIOD 2
+#define SLOPE_GRACE_PERIOD 1.5
 
 /*----------------------------   CHEMICAL CALIBRATION CONSTANTS   ------------------------------*/
-#define CAR_SPEED .397  // m/s
+#define CAR_SPEED .35  // m/s
 
-#define LOG_TIME_MIN 3.01
-#define LOG_TIME_MAX 2.00
+#define CURVE_A -0.306185
+#define CURVE_B 25.0615
 
 //bool car_timed = false;
 #define CAR_START_DELAY 0
@@ -71,6 +71,8 @@ void moveCar();
 void wait();
 void printDataSummary();
 void printCarMove();
+float calcDistance(float time_of_biggest_slope);
+float calcCarTime(float distance);
 
 
 void setup() {
@@ -157,13 +159,13 @@ bool measureData() {
     Serial.println(String(time - valve_open_time) + ", " + String(value) + ", " + String(slope));
     
 
-    if (abs(slope) > biggest_slope) {
+    if (abs(slope) > biggest_slope && time - valve_open_time > SLOPE_GRACE_PERIOD) {
         biggest_slope = abs(slope);
         time_of_biggest_slope = time;
     }
 
 
-    if (program == TEST && time - valve_open_time >= 45){
+    if (program == TEST && time - valve_open_time >= TEST_TIME){
 
         reaction_done = true;
         printDataSummary();
@@ -199,7 +201,7 @@ bool measureData() {
 void printDataSummary(){
     Serial.println("Stopped recording data");
     float time_from_valve = time_of_biggest_slope - valve_open_time;
-    float distance = 15 + 15 * (log(time_from_valve) - LOG_TIME_MIN) / (LOG_TIME_MAX - LOG_TIME_MIN);
+    float distance = 15 + 15 * (log(time_from_valve) - CURVE_A) / (CURVE_B - CURVE_A);
     float time = (distance / CAR_SPEED);  // ms
     Serial.println("Biggest Slope: " + String(biggest_slope));
     Serial.println("Time of Biggest Slope: " + String(time_from_valve));
@@ -209,23 +211,27 @@ void printDataSummary(){
 
 void printCarMove(){
     float time_from_valve = time_of_biggest_slope - valve_open_time;
-    float calcDistance = 15 + 15 * (log(time_from_valve) - LOG_TIME_MIN) / (LOG_TIME_MAX - LOG_TIME_MIN); //TODO
-    float calcTime = (calcDistance / CAR_SPEED);
-    Serial.println("Time From Valve: " + String(time_from_valve) + ", ESTIMATED DISTANCE " + String(calcDistance) + ", Time for Car Run " + String(calcTime));
+
+
+    float distance = calcDistance(time_of_biggest_slope);
+    float calcTime = calcCarTime(distance);
+    Serial.println("Time From Valve: " + String(time_from_valve) + ", ESTIMATED DISTANCE " + String(distance) + ", Time for Car Run " + String(calcTime));
 }
 
 void moveCar() {
 
-    float time_from_valve = time_of_biggest_slope - valve_open_time;
-    float calcDistance = 15 + 15 * (log(time_from_valve) - LOG_TIME_MIN) / (LOG_TIME_MAX - LOG_TIME_MIN); //TODO
-    if (calcDistance > 50){
+    float distance = calcDistance(time_of_biggest_slope);
 
+
+    if (distance > 30){
+        Serial.println("MAX DISTANCE REACHED");
+        distance = 30;
     }
-    float calcTime = (calcDistance / CAR_SPEED);
+    float calcTime = calcCarTime(distance);
 
 
     float curr_time = float(millis()) / 1000;
-    float time_left = calcTime - (curr_time - valve_open_time) + CAR_START_DELAY;
+    float time_left = calcTime;// - (curr_time - valve_open_time) + CAR_START_DELAY;
     Serial.println("Time Left: " + String(time_left));
     digitalWrite(RELAY_PIN_OUT, HIGH);
     delay(time_left * 1000);
@@ -235,6 +241,15 @@ void moveCar() {
     exit(0);
 
 
+}
+
+float calcDistance(float time_of_biggest_slope){
+    float calcDistance = CURVE_A * (time_of_biggest_slope - valve_open_time) + CURVE_B;
+    return calcDistance;
+}
+
+float calcCarTime(float distance){
+    return distance / CAR_SPEED;
 }
 
 // void data_setup() {
