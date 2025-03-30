@@ -11,6 +11,4 @@
 // void loop() {
 //     digitalWrite(TEST_PIN, HIGH);
 //     delay(1000);
-//     digitalWrite(TEST_PIN, LOW);
-//     delay(1000);
 // }
