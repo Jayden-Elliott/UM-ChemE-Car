@@ -31,7 +31,7 @@ enum PROGRAM {
 //Slope that will trigger the car movement
 #define SLOPE_LIMIT 50
 //IF TESTING, SECONDS TO TEST
-#define TEST_TIME 50
+#define TEST_TIME 42.5
 //minimum time before car starts to run
 #define SLOPE_GRACE_PERIOD 5
 
@@ -52,7 +52,7 @@ enum PROGRAM {
 /*--------------------------------   DONT TOUCH THESE   --------------------------------*/
 
 //Array of Last Few Values
-float average_buffer[AVERAGE_WINDOW_SIZE];
+float average_buffer[AVERAGE_WINDOW_SIZE];  
 
 //Array of Last Few Times
 float time_buffer[AVERAGE_WINDOW_SIZE];
@@ -191,7 +191,7 @@ bool measureData() {
 
     if (program == CURVE){
         reaction_done = true;
-        time_of_biggest_slope = TEST_TIME;
+        time_of_biggest_slope = TEST_TIME + valve_open_time;
         printDataSummary();
         Serial.println("REACTION DONE, MOVING CAR");
         printCarMove();
@@ -272,7 +272,7 @@ void moveCar() {
 
 }
 
-float calcDistance(float time_of_biggest_slope){
+float calcDistance(float time_of_biggest_slope){ //42.5
     //float calcDistance = CURVE_A * pow(EULER, CURVE_B * time_of_biggest_slope) + CURVE_C;
     float calcdistance = CURVE_A * (time_of_biggest_slope - valve_open_time) + CURVE_B;
     return calcdistance;
