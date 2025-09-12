@@ -22,7 +22,8 @@ enum PROGRAM {
 
 /*--------------------------------   SELECT TEST PROGRAM   --------------------------------*/
 
-#define program RUN
+#define program CURVE
+
 
 
 /*----------------------------   VARIABLES YOU WANT TO CHANGE   ------------------------------*/
@@ -31,12 +32,12 @@ enum PROGRAM {
 //Slope that will trigger the car movement
 #define SLOPE_LIMIT 50
 //IF TESTING, SECONDS TO TEST
-#define TEST_TIME 42.5
+#define TEST_TIME 20
 //minimum time before car starts to run
 #define SLOPE_GRACE_PERIOD 5
 
 /*----------------------------   CHEMICAL CALIBRATION CONSTANTS   ------------------------------*/
-#define CAR_A 1.9 //1.67345 //2.13022  // m/s
+#define CAR_A 2.5 //1.67345 //2.13022  // m/s .31
 #define CAR_B -0.0347561//-3.2255
 
 // EQUATION : distance = ae^{btime}+c
