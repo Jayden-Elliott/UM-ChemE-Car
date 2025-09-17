@@ -4,6 +4,7 @@
 
 #define PHOTORESISTOR_PIN_IN A0
 #define VALVE_SWITCH_PIN_IN A1 //7
+#define MULTIMETER_PIN_OUT 4
 #define VALVE_PIN_LIMIT 1015
 #define RELAY_PIN_OUT 2
 
@@ -22,11 +23,12 @@ enum PROGRAM {
 
 /*--------------------------------   SELECT TEST PROGRAM   --------------------------------*/
 
-#define program CURVE
+#define program RUN
 
 
 
 /*----------------------------   VARIABLES YOU WANT TO CHANGE   ------------------------------*/
+#define START_NOW false
 //Average Window size - Smaller: Faster Detection; Bigger: Resistant to Anomalies; Default: 35;
 #define AVERAGE_WINDOW_SIZE 35
 //Slope that will trigger the car movement
@@ -35,9 +37,11 @@ enum PROGRAM {
 #define TEST_TIME 20
 //minimum time before car starts to run
 #define SLOPE_GRACE_PERIOD 5
+//Car Head Start
+#define CAR_HEAD_START 15
 
 /*----------------------------   CHEMICAL CALIBRATION CONSTANTS   ------------------------------*/
-#define CAR_A 2.5 //1.67345 //2.13022  // m/s .31
+#define CAR_A 4 //1.67345 //2.13022  // m/s .31
 #define CAR_B -0.0347561//-3.2255
 
 // EQUATION : distance = ae^{btime}+c
@@ -72,6 +76,8 @@ bool reaction_done;
 
 float baseline;
 
+float carRunTime = 0;
+
 
 
 bool measureData();
@@ -100,7 +106,9 @@ void setup() {
     Serial.begin(9600);
     pinMode(VALVE_SWITCH_PIN_IN, INPUT);
     pinMode(RELAY_PIN_OUT, OUTPUT);
+    pinMode(MULTIMETER_PIN_OUT, OUTPUT);
     digitalWrite(RELAY_PIN_OUT, LOW);
+    digitalWrite(MULTIMETER_PIN_OUT, HIGH);
     delay(10);
 
 
@@ -126,11 +134,16 @@ void loop() {
     }
 
     delay(10);
+
     if (!valve_opened){
         wait();
         return;
     }
 
+    if (program == RUN && START_NOW == true){
+        digitalWrite(RELAY_PIN_OUT, HIGH);
+        carRunTime = millis();
+    }
     
 
     if (!reaction_done){
@@ -275,7 +288,7 @@ void moveCar() {
 
 float calcDistance(float time_of_biggest_slope){ //42.5
     //float calcDistance = CURVE_A * pow(EULER, CURVE_B * time_of_biggest_slope) + CURVE_C;
-    float calcdistance = CURVE_A * (time_of_biggest_slope - valve_open_time) + CURVE_B;
+    float calcdistance = CURVE_A * (time_of_biggest_slope - valve_open_time - carRunTime/1000) + CURVE_B;
     return calcdistance;
 }
 
