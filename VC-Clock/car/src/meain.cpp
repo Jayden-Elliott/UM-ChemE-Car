@@ -34,20 +34,19 @@ enum PROGRAM {
 //Slope that will trigger the car movement
 #define SLOPE_LIMIT 50
 //IF TESTING, SECONDS TO TEST
-#define TEST_TIME 20
+#define TEST_TIME 40
 //minimum time before car starts to run
 #define SLOPE_GRACE_PERIOD 5
 //Car Head Start
 #define CAR_HEAD_START 15
 
 /*----------------------------   CHEMICAL CALIBRATION CONSTANTS   ------------------------------*/
-#define CAR_A 4 //1.67345 //2.13022  // m/s .31
+#define CAR_A 3.448 //1.67345 //2.13022  // m/s .31
 #define CAR_B -0.0347561//-3.2255
 
 // EQUATION : distance = ae^{btime}+c
-
-#define CURVE_A -0.25
-#define CURVE_B 35
+#define CURVE_A -.33333
+#define CURVE_B 31.66667
 //#define CURVE_C 4.88783
 
 //bool car_timed = false;
@@ -70,6 +69,8 @@ float biggest_slope;
 float valve_open_time;
 float car_start_time;
 int index;
+
+float time_temp_use;
 
 bool valve_opened;
 bool reaction_done;
@@ -221,6 +222,7 @@ bool measureData() {
 
     if (program == RUN && abs(value - baseline) > SLOPE_LIMIT && (time - valve_open_time) > SLOPE_GRACE_PERIOD){
         reaction_done = true;
+        time_temp_use = time - valve_open_time;
         printDataSummary();
         Serial.println("REACTION DONE, MOVING CAR");
         printCarMove();
@@ -256,17 +258,17 @@ void printDataSummary(){
 }
 
 void printCarMove(){
-    float time_from_valve = time_of_biggest_slope - valve_open_time;
+    float time_from_valve = time_temp_use - valve_open_time;
 
 
-    float distance = calcDistance(time_of_biggest_slope);
+    float distance = calcDistance(time_temp_use);
     float calcTime = calcCarTime(distance);
-    Serial.println("Time From Valve: " + String(time_from_valve) + ", ESTIMATED DISTANCE " + String(distance) + ", Time for Car Run " + String(calcTime));
+    Serial.println("Time From Valve: " + String(time_temp_use) + ", ESTIMATED DISTANCE " + String(distance) + ", Time for Car Run " + String(calcTime));
 }
 
 void moveCar() {
 
-    float distance = calcDistance(time_of_biggest_slope);
+    float distance = calcDistance(time_temp_use);
 
 
 
