@@ -1,56 +1,24 @@
-#include <Arduino.h>
-#include <SoftwareSerial.h>
+/*----------------------------------------------------------------------------------
+
+CHEM-E-CAR Battery Car
+Main Contributors:
+Arya Rukadikar <arukad@umich.edu>
+Jayden Elliot <jaydene@umich.edu>
+
+Seth Hansen <sethhan@umich.edu>
 
 
-#define PHOTORESISTOR_PIN_IN A0
-#define VALVE_SWITCH_PIN_IN A1 //7
-#define MULTIMETER_PIN_OUT 4
-#define VALVE_PIN_LIMIT 1015
-#define RELAY_PIN_OUT 2
+TODO for improvement:
+Separate Measuredata into two separate functions
+Create HPP file to store variables and function bloat
+Create new files for Constants and CarState
+------------------------------------------------------------------------------------
+*/
 
-enum PROGRAM {
-    //Run the Whole program
-    RUN = 0,
-    //Test the Chemical Reaction (No Motor)
-    TEST = 1,
-    //Test the Relay with 1-2 Delay
-    PULSE = 2,
-    //TEST DATA Calibration curve
-    CURVE = 4,
-    //JUST RELAY
-    RELAY = 5
-};
-
-/*--------------------------------   SELECT TEST PROGRAM   --------------------------------*/
-
-#define program RUN
+#include "CarInfo.cpp"
+#include "meain.hpp"
 
 
-
-/*----------------------------   VARIABLES YOU WANT TO CHANGE   ------------------------------*/
-#define START_NOW false
-//Average Window size - Smaller: Faster Detection; Bigger: Resistant to Anomalies; Default: 35;
-#define AVERAGE_WINDOW_SIZE 35
-//Slope that will trigger the car movement
-#define SLOPE_LIMIT 50
-//IF TESTING, SECONDS TO TEST
-#define TEST_TIME 40
-//minimum time before car starts to run
-#define SLOPE_GRACE_PERIOD 5
-//Car Head Start
-#define CAR_HEAD_START 15
-
-/*----------------------------   CHEMICAL CALIBRATION CONSTANTS   ------------------------------*/
-#define CAR_A 3.448 //1.67345 //2.13022  // m/s .31
-#define CAR_B -0.0347561//-3.2255
-
-// EQUATION : distance = ae^{btime}+c
-#define CURVE_A -.33333
-#define CURVE_B 31.66667
-//#define CURVE_C 4.88783
-
-//bool car_timed = false;
-#define CAR_START_DELAY 0
 
 
 /*--------------------------------   DONT TOUCH THESE   --------------------------------*/
@@ -75,15 +43,13 @@ float time_temp_use;
 bool valve_opened;
 bool reaction_done;
 
-float baseline;
-
 float carRunTime = 0;
 
 
 
 bool measureData();
-void data_setup();
-void data_loop();
+void dataSetup();
+void dataLoop();
 void moveCar();
 void wait();
 void printDataSummary();
@@ -91,18 +57,14 @@ void printCarMove();
 float calcDistance(float time_of_biggest_slope);
 float calcCarTime(float distance);
 
-
+//REQUIRES: NONE
+//EFFECTS: Initializes CarInfo and Arduino Variables
+//RETURNS: CarInfo, Init Variables, 
 void setup() {
     //INIT
-    value_avg_running = 0;
-    time_of_biggest_slope = 0;
-    biggest_slope = 0;
-    valve_open_time = 0;
-    car_start_time = 0;
-    valve_opened = false;
-    reaction_done = false;
-    index = 0;
+    
 
+    CarInfo INFO();
 
     Serial.begin(9600);
     pinMode(VALVE_SWITCH_PIN_IN, INPUT);
@@ -111,34 +73,108 @@ void setup() {
     digitalWrite(RELAY_PIN_OUT, LOW);
     digitalWrite(MULTIMETER_PIN_OUT, HIGH);
     delay(10);
-
-
-    // fill array with values
-    for (int x = 0; x < AVERAGE_WINDOW_SIZE; x++){
-        //Take In Value From Photoresistor; Add to vab
-        average_buffer[x] = analogRead(PHOTORESISTOR_PIN_IN);
-        time_buffer[x] = float(millis()) / 1000;
-        delay(10);
-        Serial.println(String(value_avg_running) + " : " + String(average_buffer[x]));
-    }
-
-    value_avg_running = average_buffer[AVERAGE_WINDOW_SIZE - 1];
-    baseline = value_avg_running;
     Serial.println("Starting recording data");
 }
 
+//EFFECT: CALLS FUNCTIONS SHOULD NOT MODIFY VARIABLES
+//REQUIRES: mode, 
+//RETURNS: nothing
 void loop() {
-    if (program == RELAY){
-        Serial.println("USING RELAY");
-        digitalWrite(RELAY_PIN_OUT, HIGH);
-        return;
+    string mode = "RUN";
+
+    switch(mode) {
+        case "RUN":
+            populateBuffer();
+
+            detect() == -1 ? return :
+            (detect) -> 
+            runCar()
+        case "TEST":
+            populateBuffer();
+        case "PULSE":
+            return;
+        case "CURVE":
+            return;
+        case "RELAY":
+            Serial.println("USING RELAY");
+            digitalWrite(RELAY_PIN_OUT, HIGH);
     }
 
-    delay(10);
+
+
+    /*
+    SWITCH
+        CASE RUN
+            populatebuffer()
+            detect()
+            runcar()
+        CASE TEST
+            populatebuffer()
+        CASE PULSE
+            runcar.pulse()
+        CASE CURVE
+            runcar(constant)
+        CASE RELAY
+            runcar.relay()
+
+    Gameplan Pseudocode:
+
+    Data Recording part
+        case RUN: populateBuffer();
+        case TEST: populateBuffer();
+        case PULSE: Do Nothing
+        case CURVE: Do Nothing
+        case RELAY: RunRelayCode(); BREAK;
+
+    Detection Part
+        case RUN: provide Data Summary
+        case TEST: provide Data Summary; BREAK
+        case PULSE: Do NOTHING
+        case CURVE: DO NOTHING
+        case RELAY: -----
+
+    Car Moving Part
+        case Run: Do the Car calculations; RUN CAR
+        case TEST: -------
+        case PULSE: Do pulse code;
+        case CURVE: RUN CAR with preset value
+        case RELAY: ------
+
+    Car ending stuff
+        stuff
+    
+    
+    
+    */
+
+
+
+
+
+    //make a program that establishes baseline
+
+
+    //TODO
+    /*
+    1) Make a new CarInfo variable called bufferPopulated
+    2) If Buffer not populated, keep adding data values to the buffer using method populateBuffer
+    3) Take Average Readings 
+    4) After Buffer is full, set baseline to average, set bufferPopulated to True and 
+        close out of the function when called afterward
+    */
+
+    if (program == RUN)
+        populateBuffer();
+
+
+    if (program == RELAY){
+        
+    }
+
+    delay(LOOP_DELAY);
 
     if (!valve_opened){
         wait();
-        return;
     }
 
     if (program == RUN && START_NOW == true){
@@ -149,7 +185,6 @@ void loop() {
 
     if (!reaction_done){
         measureData();
-        return;
     }
 
     if (program == RUN || program == CURVE)
@@ -158,38 +193,103 @@ void loop() {
     
 }
 
-void wait(){
-
+//TODO: RENAME
+//EFFECT: gets two readings from the arduino. If both are positive, print valve opened
+//and set the according CarInfo variables
+//RETURNS: true if Valve Switch PIN IN is > Valve Pin Limit
+bool waitForValveOpen(){
 
     if (analogRead(VALVE_SWITCH_PIN_IN) < VALVE_PIN_LIMIT) {
-        return;
+        return false;
     } 
     delay(5);
     if (analogRead(VALVE_SWITCH_PIN_IN) < VALVE_PIN_LIMIT) {
-        return;
+        return false;
     }
+   
     valve_opened = true;
     valve_open_time = float(millis()) / 1000;
     Serial.println("Valve Opened");
-    
+    return true; 
+
 }
 
+populateBuffer()
 
-bool measureData() {
-    
+
+//TODO: Rename, Make Data Struct
+//EFFECTS: Updates Buffer
+//TAKES: Get some reaction variables
+//Returns: average running
+//MODIFIES: The buffer lists
+void calcBuffer() {
 
     float time = float(millis()) / 1000;
     float value = float(analogRead(PHOTORESISTOR_PIN_IN));
     value_avg_running += (value - average_buffer[index]) / AVERAGE_WINDOW_SIZE;
-    // Serial.println("Time: " + String(time) + ", Rem Time: " + String(time_buffer[index]) + ", Value Avg: " + String(value_avg_running) + ", Rem Value Avg " + String(value_avg_buffer[index]));
     float slope = (value_avg_running - average_buffer[index]) / (time - time_buffer[index]);
     average_buffer[index] = value_avg_running;
     time_buffer[index] = time;
     index = (index + 1) % AVERAGE_WINDOW_SIZE;
-    
-    Serial.println(String(time - valve_open_time) + ", " + String(value) + ", " + String(slope));
-    
+    //Return the average running
+}
 
+//Prolly dont need this, make a toString function in DATUM
+void printData(/*GET A DATA STRUCT*/) {
+    Serial.println(String(time - valve_open_time) + ", " + String(value) + ", " + String(slope));
+}
+
+//EFFECTS: Using the program and the Reaction Variables, return the decision to start or not start car
+bool decision(){
+
+    if (program == TEST && time - valve_open_time >= TEST_TIME){
+        reaction_done = true;
+    }
+
+    if (program == CURVE){
+        reaction_done = true;
+        time_of_biggest_slope = TEST_TIME + valve_open_time;
+        return true;
+    }
+    
+    //OLD CODE
+    
+    if (abs(slope) > biggest_slope && time - valve_open_time > SLOPE_GRACE_PERIOD) {
+        biggest_slope = abs(slope);
+        time_of_biggest_slope = time;
+    }
+    
+    if (program == TEST && time - valve_open_time >= TEST_TIME){
+
+        reaction_done = true;
+        printDataSummary();
+
+    }
+
+    if (program == CURVE){
+        reaction_done = true;
+        time_of_biggest_slope = TEST_TIME + valve_open_time;
+        printDataSummary();
+        Serial.println("REACTION DONE, MOVING CAR");
+        printCarMove();
+    }
+
+    if (program == RUN && abs(value - baseline) > SLOPE_LIMIT && (time - valve_open_time) > SLOPE_GRACE_PERIOD){
+        reaction_done = true;
+        time_temp_use = time - valve_open_time;
+        printDataSummary();
+        Serial.println("REACTION DONE, MOVING CAR");
+        printCarMove();
+
+    }
+
+    return false;
+}
+
+//TODO: RENAME
+bool measureData() {
+
+    //Decisions of the CAR
     if (abs(slope) > biggest_slope && time - valve_open_time > SLOPE_GRACE_PERIOD) {
         biggest_slope = abs(slope);
         time_of_biggest_slope = time;
@@ -201,7 +301,6 @@ bool measureData() {
         reaction_done = true;
         printDataSummary();
 
-        
     }
 
     if (program == CURVE){
@@ -212,14 +311,6 @@ bool measureData() {
         printCarMove();
     }
 
-    // if (program == RUN && abs(biggest_slope) > SLOPE_LIMIT && (time - valve_open_time) > SLOPE_GRACE_PERIOD){
-    //     reaction_done = true;
-    //     printDataSummary();
-    //     Serial.println("REACTION DONE, MOVING CAR");
-    //     printCarMove();
-
-    // }
-
     if (program == RUN && abs(value - baseline) > SLOPE_LIMIT && (time - valve_open_time) > SLOPE_GRACE_PERIOD){
         reaction_done = true;
         time_temp_use = time - valve_open_time;
@@ -229,21 +320,7 @@ bool measureData() {
 
     }
 
-    // if (car_start_time == 0) {
-    //     if (float(millis()) / 1000 - valve_open_time < CAR_START_DELAY) {
-    //         return;
-    //     }
-    //     car_start_time = float(millis()) / 1000;
-    //     digitalWrite(RELAY_PIN_OUT, HIGH);
-    // }
-
-
-
     return false;
-    // if (abs(slope) > slope_limit && slope < biggest_slope) {
-    //     Serial.println("Stopped recording data");
-    //     moveCar(time_of_biggest_slope);
-    // }
 }
 
 void printDataSummary(){
@@ -257,6 +334,12 @@ void printDataSummary(){
     Serial.println("Wait Time: " + String(time));
 }
 
+
+void runCar(float timeOfActivation){
+    
+}
+
+//COMPLETLY OVERHAUL
 void printCarMove(){
     float time_from_valve = time_temp_use - valve_open_time;
 
@@ -298,13 +381,13 @@ float calcCarTime(float distance){
     return distance * CAR_A + CAR_B;
 }
 
-// void data_setup() {
+// void dataSetup() {
 //     Serial.begin(9600);
 //     pinMode(VALVE_SWITCH_PIN_IN, INPUT);
 //     Serial.println("Starting recording data");
 // }
 
-// void data_loop() {
+// void dataLoop() {
 //     if (digitalRead(VALVE_SWITCH_PIN_IN) != HIGH && valve_open_time == 0) {
 //         return;
 //     }

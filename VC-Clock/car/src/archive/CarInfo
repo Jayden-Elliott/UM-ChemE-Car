@@ -1,0 +1,42 @@
+class CarInfo{
+    private:
+
+    float value_avg_running;
+    float time_of_biggest_slope;
+    float biggest_slope;
+    float valve_open_time;
+    float car_start_time;
+    float carRunTime;
+    
+    bool valve_opened;
+    bool reaction_done;
+    
+    int index;
+
+    PROGRAM prog;
+
+    public:
+
+    CarInfo() 
+    : value_avg_running(0), time_of_biggest_slope(0), biggest_slope(0),
+        valve_open_time(0), car_start_time(0), carRunTime(0), 
+        valve_opened(false), reaction_done(false), index(0),
+        prog(0) {
+            
+        }
+
+    
+};
+
+enum PROGRAM {
+    //Run the Whole program
+    RUN = 0,
+    //Test the Chemical Reaction (No Motor)
+    TEST = 1,
+    //Test the Relay with 1-2 Delay
+    PULSE = 2,
+    //TEST DATA Calibration curve
+    CURVE = 4,
+    //JUST RELAY
+    RELAY = 5
+};
