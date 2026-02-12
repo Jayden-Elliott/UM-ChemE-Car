@@ -2,10 +2,7 @@
 #include <SoftwareSerial.h>
 #include <math.h>
 
-#define P1 2
-#define P2 3
-#define P3 4
-#define P4 5
+#define PIN 2
 
 double initalTime;
 double lowDelay;
@@ -18,10 +15,7 @@ void changeDelay();
 
 void setup() {
     Serial.begin(9600);
-    pinMode(P1, OUTPUT);
-    pinMode(P2, OUTPUT);
-    pinMode(P3, OUTPUT);
-    pinMode(P4, OUTPUT);
+    pinMode(PIN, OUTPUT);
     
     initalTime = millis();
     t = initalTime;
@@ -32,9 +26,9 @@ void setup() {
 void changeDelay(){
   double amp = millis()/1000;
   double value = 5*sin(amp) + 10;
-  // Serial.print(value);
-  // Serial.print(" ");
-  // Serial.println(amp);
+  Serial.print(value);
+  Serial.print(" ");
+  Serial.println(amp);
   highDelay = value;
 }
 
@@ -66,10 +60,10 @@ void loop(){
 
 
 
-  digitalWrite(P4, LOW); 
-  digitalWrite(P3, LOW); 
-  digitalWrite(P2, LOW); 
-  digitalWrite(P1, LOW); 
+  // digitalWrite(P4, LOW); 
+  // digitalWrite(P3, LOW); 
+  // digitalWrite(P2, LOW); 
+  // digitalWrite(P1, LOW); 
 
 
 
@@ -79,20 +73,20 @@ void loop(){
   // Serial.print(" ");
   // Serial.println(highDelay);
 
-  // if (t < highDelay){
+  if (t < highDelay){
 
-  //   if (changed == 0){
-  //     changed = 1;
-  //     changeDelay();
-  //   }
-  //   digitalWrite(PIN, HIGH);
-  // }
-  // else {
-  //   digitalWrite(PIN, LOW);
-  //   if (changed == 1){
-  //     changed = 0;
-  //   }
-  // }
+    if (changed == 0){
+      changed = 1;
+      changeDelay();
+    }
+    digitalWrite(PIN, HIGH);
+  }
+  else {
+    digitalWrite(PIN, LOW);
+    if (changed == 1){
+      changed = 0;
+    }
+  }
 
   
 
