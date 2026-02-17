@@ -1,11 +1,25 @@
 #include <Arduino.h>
 #include <SoftwareSerial.h>
+#include <Adafruit_AS7341.h>
 
+//TODO
+/*
+Define 2 varibles for color sensor input pins
+In measuredate function, store the wavelength
+movecar function
 
+*/  
 #define PHOTORESISTOR_PIN_IN A0
 #define VALVE_SWITCH_PIN_IN A1 //7
 #define VALVE_PIN_LIMIT 1015
 #define RELAY_PIN_OUT 2
+
+#define COLOR_SENSOR_SDA 20
+#define COLOR_SENSOR_SCL 21
+
+Adafruit_AS7341 Color_Sensor;
+
+float calc_weighted_wavelength(float data[]);
 
 enum PROGRAM {
     //Run the Whole program
@@ -57,7 +71,6 @@ float average_buffer[AVERAGE_WINDOW_SIZE];
 //Array of Last Few Times
 float time_buffer[AVERAGE_WINDOW_SIZE];
 
-
 //float value_avg_running;
 float value_avg_running;
 float time_of_biggest_slope;
@@ -73,214 +86,267 @@ float baseline;
 
 
 
-bool measureData();
-void data_setup();
-void data_loop();
-void moveCar();
-void wait();
-void printDataSummary();
-void printCarMove();
-float calcDistance(float time_of_biggest_slope);
-float calcCarTime(float distance);
+// bool measureData();
+// void data_setup();
+// void data_loop();
+// void moveCar();
+// void wait();
+// void printDataSummary();
+// void printCarMove();
+// float calcDistance(float time_of_biggest_slope);
+// float calcCarTime(float distance);
 
 
 void setup() {
-    //INIT
-    value_avg_running = 0;
-    time_of_biggest_slope = 0;
-    biggest_slope = 0;
-    valve_open_time = 0;
-    car_start_time = 0;
-    valve_opened = false;
-    reaction_done = false;
-    index = 0;
-
-
+    //     //INIT
+    //     value_avg_running = 0;
+    //     time_of_biggest_slope = 0;
+    //     biggest_slope = 0;
+    //     valve_open_time = 0;
+    //     car_start_time = 0;
+    //     valve_opened = false;
+    //     reaction_done = false;
+    //     index = 0;
+    
+    //     ///HRER
+    
+    
     Serial.begin(9600);
+    Color_Sensor.setATIME(100);
+    Color_Sensor.setASTEP(999);
+    Color_Sensor.setGain(AS7341_GAIN_256X);
     pinMode(VALVE_SWITCH_PIN_IN, INPUT);
     pinMode(RELAY_PIN_OUT, OUTPUT);
     digitalWrite(RELAY_PIN_OUT, LOW);
     delay(10);
-
-
-    // fill array with values
-    for (int x = 0; x < AVERAGE_WINDOW_SIZE; x++){
-        //Take In Value From Photoresistor; Add to vab
-        average_buffer[x] = analogRead(PHOTORESISTOR_PIN_IN);
-        time_buffer[x] = float(millis()) / 1000;
-        delay(10);
-        Serial.println(String(value_avg_running) + " : " + String(average_buffer[x]));
+    if (!Color_Sensor.begin()){
+        Serial.println("Could not find AS7341");
+        while (1) { delay(10); }
     }
+    // Serial.println("hello world");
 
-    value_avg_running = average_buffer[AVERAGE_WINDOW_SIZE - 1];
-    baseline = value_avg_running;
-    Serial.println("Starting recording data");
+//     // fill array with values
+//     for (int x = 0; x < AVERAGE_WINDOW_SIZE; x++){
+//         //Take In Value From Photoresistor; Add to vab
+//         average_buffer[x] = analogRead(PHOTORESISTOR_PIN_IN);
+//         time_buffer[x] = float(millis()) / 1000;
+//         delay(10);
+//         Serial.println(String(value_avg_running) + " : " + String(average_buffer[x]));
+//     }
+
+//     value_avg_running = average_buffer[AVERAGE_WINDOW_SIZE - 1];
+//     baseline = value_avg_running;
+//     Serial.println("Starting recording data");
 }
 
 void loop() {
-    if (program == RELAY){
-        Serial.println("USING RELAY");
-        digitalWrite(RELAY_PIN_OUT, HIGH);
+    if (!Color_Sensor.readAllChannels()){
+        Serial.println("Error reading all channels!");
         return;
     }
 
-    delay(10);
-    if (!valve_opened){
-        wait();
-        return;
-    }
+    double b = 16;
+
+    Serial.print(millis() / 1000.0); Serial.print(",");
+    Serial.print((double) Color_Sensor.getChannel(AS7341_CHANNEL_415nm_F1) / pow(2,b) * 100);  Serial.print(",");
+    Serial.print((double) Color_Sensor.getChannel(AS7341_CHANNEL_445nm_F2) / pow(2,b) * 100);  Serial.print(",");
+    Serial.print((double) Color_Sensor.getChannel(AS7341_CHANNEL_480nm_F3) / pow(2,b) * 100);  Serial.print(",");
+    Serial.print((double) Color_Sensor.getChannel(AS7341_CHANNEL_515nm_F4) / pow(2,b) * 100);  Serial.print(",");
+    Serial.print((double) Color_Sensor.getChannel(AS7341_CHANNEL_555nm_F5) / pow(2,b) * 100);  Serial.print(",");
+    Serial.print((double) Color_Sensor.getChannel(AS7341_CHANNEL_590nm_F6) / pow(2,b) * 100);  Serial.print(",");
+    Serial.print((double) Color_Sensor.getChannel(AS7341_CHANNEL_630nm_F7) / pow(2,b) * 100);  Serial.print(",");
+    Serial.print((double) Color_Sensor.getChannel(AS7341_CHANNEL_680nm_F8) / pow(2,b) * 100);  Serial.print(",");
+    Serial.print((double) Color_Sensor.getChannel(AS7341_CHANNEL_CLEAR) / pow(2,b) * 100);  Serial.print(",");
+    Serial.println((double) Color_Sensor.getChannel(AS7341_CHANNEL_NIR) / pow(2,b) * 100);
+
+    float data[8];
+    data[0] = (double) Color_Sensor.getChannel(AS7341_CHANNEL_415nm_F1) / pow(2,b) * 100;
+    data[1] = (double) Color_Sensor.getChannel(AS7341_CHANNEL_445nm_F2) / pow(2,b) * 100;
+    data[2] = (double) Color_Sensor.getChannel(AS7341_CHANNEL_480nm_F3) / pow(2,b) * 100;
+    data[3] = (double) Color_Sensor.getChannel(AS7341_CHANNEL_515nm_F4) / pow(2,b) * 100;
+    data[4] = (double) Color_Sensor.getChannel(AS7341_CHANNEL_555nm_F5) / pow(2,b) * 100;
+    data[5] = (double) Color_Sensor.getChannel(AS7341_CHANNEL_590nm_F6) / pow(2,b) * 100;
+    data[6] = (double) Color_Sensor.getChannel(AS7341_CHANNEL_630nm_F7) / pow(2,b) * 100;
+    data[7] = (double) Color_Sensor.getChannel(AS7341_CHANNEL_680nm_F8) / pow(2,b) * 100;
+
+    Serial.println(calc_weighted_wavelength(data));
+    return;
+
+
+
+
+    // if (program == RELAY){
+    //     Serial.println("USING RELAY");
+    //     digitalWrite(RELAY_PIN_OUT, HIGH);
+    //     return;
+    // }
+
+    // delay(10);
+    // if (!valve_opened){
+    //     wait();
+    //     return;
+    // }
 
     
 
-    if (!reaction_done){
-        measureData();
-        return;
-    }
+    // if (!reaction_done){
+    //     measureData();
+    //     return;
+    // }
 
-    if (program == RUN || program == CURVE)
-        moveCar();
+    // if (program == RUN || program == CURVE)
+    //     moveCar();
     
     
 }
+float calc_weighted_wavelength(float data[]) {
+     float waves_sum = 0.0;
+     float total_intensity = 0.0;
+     for (int i = 0 ; i < 8; i++) {
+        waves_sum += (i+1) * data[i];
+        total_intensity += data[i];
+     }
+     return waves_sum/total_intensity;
+ }
 
-void wait(){
+// void wait(){
 
 
-    if (analogRead(VALVE_SWITCH_PIN_IN) < VALVE_PIN_LIMIT) {
-        return;
-    } 
-    delay(5);
-    if (analogRead(VALVE_SWITCH_PIN_IN) < VALVE_PIN_LIMIT) {
-        return;
-    }
-    valve_opened = true;
-    valve_open_time = float(millis()) / 1000;
-    Serial.println("Valve Opened");
+//     if (analogRead(VALVE_SWITCH_PIN_IN) < VALVE_PIN_LIMIT) {
+//         return;
+//     } 
+//     delay(5);
+//     if (analogRead(VALVE_SWITCH_PIN_IN) < VALVE_PIN_LIMIT) {
+//         return;
+//     }
+//     valve_opened = true;
+//     valve_open_time = float(millis()) / 1000;
+//     Serial.println("Valve Opened");
     
-}
+// }
 
 
-bool measureData() {
-    
-
-    float time = float(millis()) / 1000;
-    float value = float(analogRead(PHOTORESISTOR_PIN_IN));
-    value_avg_running += (value - average_buffer[index]) / AVERAGE_WINDOW_SIZE;
-    // Serial.println("Time: " + String(time) + ", Rem Time: " + String(time_buffer[index]) + ", Value Avg: " + String(value_avg_running) + ", Rem Value Avg " + String(value_avg_buffer[index]));
-    float slope = (value_avg_running - average_buffer[index]) / (time - time_buffer[index]);
-    average_buffer[index] = value_avg_running;
-    time_buffer[index] = time;
-    index = (index + 1) % AVERAGE_WINDOW_SIZE;
-    
-    Serial.println(String(time - valve_open_time) + ", " + String(value) + ", " + String(slope));
+// bool measureData() {
     
 
-    if (abs(slope) > biggest_slope && time - valve_open_time > SLOPE_GRACE_PERIOD) {
-        biggest_slope = abs(slope);
-        time_of_biggest_slope = time;
-    }
+//     float time = float(millis()) / 1000;
+//     float value = float(analogRead(PHOTORESISTOR_PIN_IN));
+//     value_avg_running += (value - average_buffer[index]) / AVERAGE_WINDOW_SIZE;
+//     // Serial.println("Time: " + String(time) + ", Rem Time: " + String(time_buffer[index]) + ", Value Avg: " + String(value_avg_running) + ", Rem Value Avg " + String(value_avg_buffer[index]));
+//     float slope = (value_avg_running - average_buffer[index]) / (time - time_buffer[index]);
+//     average_buffer[index] = value_avg_running;
+//     time_buffer[index] = time;
+//     index = (index + 1) % AVERAGE_WINDOW_SIZE;
+    
+//     Serial.println(String(time - valve_open_time) + ", " + String(value) + ", " + String(slope));
+    
+
+//     if (abs(slope) > biggest_slope && time - valve_open_time > SLOPE_GRACE_PERIOD) {
+//         biggest_slope = abs(slope);
+//         time_of_biggest_slope = time;
+//     }
 
 
-    if (program == TEST && time - valve_open_time >= TEST_TIME){
+//     if (program == TEST && time - valve_open_time >= TEST_TIME){
 
-        reaction_done = true;
-        printDataSummary();
+//         reaction_done = true;
+//         printDataSummary();
 
         
-    }
+//     }
 
-    if (program == CURVE){
-        reaction_done = true;
-        time_of_biggest_slope = TEST_TIME;
-        printDataSummary();
-        Serial.println("REACTION DONE, MOVING CAR");
-        printCarMove();
-    }
+//     if (program == CURVE){
+//         reaction_done = true;
+//         time_of_biggest_slope = TEST_TIME;
+//         printDataSummary();
+//         Serial.println("REACTION DONE, MOVING CAR");
+//         printCarMove();
+//     }
 
-    // if (program == RUN && abs(biggest_slope) > SLOPE_LIMIT && (time - valve_open_time) > SLOPE_GRACE_PERIOD){
-    //     reaction_done = true;
-    //     printDataSummary();
-    //     Serial.println("REACTION DONE, MOVING CAR");
-    //     printCarMove();
+//     // if (program == RUN && abs(biggest_slope) > SLOPE_LIMIT && (time - valve_open_time) > SLOPE_GRACE_PERIOD){
+//     //     reaction_done = true;
+//     //     printDataSummary();
+//     //     Serial.println("REACTION DONE, MOVING CAR");
+//     //     printCarMove();
 
-    // }
+//     // }
 
-    if (program == RUN && abs(value - baseline) > SLOPE_LIMIT && (time - valve_open_time) > SLOPE_GRACE_PERIOD){
-        reaction_done = true;
-        printDataSummary();
-        Serial.println("REACTION DONE, MOVING CAR");
-        printCarMove();
+//     if (program == RUN && abs(value - baseline) > SLOPE_LIMIT && (time - valve_open_time) > SLOPE_GRACE_PERIOD){
+//         reaction_done = true;
+//         printDataSummary();
+//         Serial.println("REACTION DONE, MOVING CAR");
+//         printCarMove();
 
-    }
+//     }
 
-    // if (car_start_time == 0) {
-    //     if (float(millis()) / 1000 - valve_open_time < CAR_START_DELAY) {
-    //         return;
-    //     }
-    //     car_start_time = float(millis()) / 1000;
-    //     digitalWrite(RELAY_PIN_OUT, HIGH);
-    // }
-
-
-
-    return false;
-    // if (abs(slope) > slope_limit && slope < biggest_slope) {
-    //     Serial.println("Stopped recording data");
-    //     moveCar(time_of_biggest_slope);
-    // }
-}
-
-void printDataSummary(){
-    Serial.println("Stopped recording data");
-    float time_from_valve = time_of_biggest_slope - valve_open_time;
-    float distance = calcDistance(time_of_biggest_slope);
-    float time = calcCarTime(distance);  // ms
-    Serial.println("Biggest Slope: " + String(biggest_slope));
-    Serial.println("Time of Biggest Slope: " + String(time_from_valve));
-    Serial.println("Estimated Distance: " + String(distance));
-    Serial.println("Wait Time: " + String(time));
-}
-
-void printCarMove(){
-    float time_from_valve = time_of_biggest_slope - valve_open_time;
-
-
-    float distance = calcDistance(time_of_biggest_slope);
-    float calcTime = calcCarTime(distance);
-    Serial.println("Time From Valve: " + String(time_from_valve) + ", ESTIMATED DISTANCE " + String(distance) + ", Time for Car Run " + String(calcTime));
-}
-
-void moveCar() {
-
-    float distance = calcDistance(time_of_biggest_slope);
+//     // if (car_start_time == 0) {
+//     //     if (float(millis()) / 1000 - valve_open_time < CAR_START_DELAY) {
+//     //         return;
+//     //     }
+//     //     car_start_time = float(millis()) / 1000;
+//     //     digitalWrite(RELAY_PIN_OUT, HIGH);
+//     // }
 
 
 
-    float calcTime = calcCarTime(distance);
+//     return false;
+//     // if (abs(slope) > slope_limit && slope < biggest_slope) {
+//     //     Serial.println("Stopped recording data");
+//     //     moveCar(time_of_biggest_slope);
+//     // }
+// }
+
+// void printDataSummary(){
+//     Serial.println("Stopped recording data");
+//     float time_from_valve = time_of_biggest_slope - valve_open_time;
+//     float distance = calcDistance(time_of_biggest_slope);
+//     float time = calcCarTime(distance);  // ms
+//     Serial.println("Biggest Slope: " + String(biggest_slope));
+//     Serial.println("Time of Biggest Slope: " + String(time_from_valve));
+//     Serial.println("Estimated Distance: " + String(distance));
+//     Serial.println("Wait Time: " + String(time));
+// }
+
+// void printCarMove(){
+//     float time_from_valve = time_of_biggest_slope - valve_open_time;
 
 
-    //float curr_time = float(millis()) / 1000;
-    float time_left = calcTime;// - (curr_time - valve_open_time) + CAR_START_DELAY;
-    Serial.println("Time Left: " + String(time_left));
-    digitalWrite(RELAY_PIN_OUT, HIGH);
-    delay(time_left * 1000);
-    digitalWrite(RELAY_PIN_OUT, LOW);
-    Serial.println("PROGRAM END");
-    delay(100);
-    exit(0);
+//     float distance = calcDistance(time_of_biggest_slope);
+//     float calcTime = calcCarTime(distance);
+//     Serial.println("Time From Valve: " + String(time_from_valve) + ", ESTIMATED DISTANCE " + String(distance) + ", Time for Car Run " + String(calcTime));
+// }
+
+// void moveCar() {
+
+//     float distance = calcDistance(time_of_biggest_slope);
 
 
-}
 
-float calcDistance(float time_of_biggest_slope){
-    //float calcDistance = CURVE_A * pow(EULER, CURVE_B * time_of_biggest_slope) + CURVE_C;
-    float calcdistance = CURVE_A * (time_of_biggest_slope - valve_open_time) + CURVE_B;
-    return calcdistance;
-}
+//     float calcTime = calcCarTime(distance);
 
-float calcCarTime(float distance){
-    return distance * CAR_A + CAR_B;
-}
+
+//     //float curr_time = float(millis()) / 1000;
+//     float time_left = calcTime;// - (curr_time - valve_open_time) + CAR_START_DELAY;
+//     Serial.println("Time Left: " + String(time_left));
+//     digitalWrite(RELAY_PIN_OUT, HIGH);
+//     delay(time_left * 1000);
+//     digitalWrite(RELAY_PIN_OUT, LOW);
+//     Serial.println("PROGRAM END");
+//     delay(100);
+//     exit(0);
+
+
+// }
+
+// float calcDistance(float time_of_biggest_slope){
+//     //float calcDistance = CURVE_A * pow(EULER, CURVE_B * time_of_biggest_slope) + CURVE_C;
+//     float calcdistance = CURVE_A * (time_of_biggest_slope - valve_open_time) + CURVE_B;
+//     return calcdistance;
+// }
+
+// float calcCarTime(float distance){
+//     return distance * CAR_A + CAR_B;
+// }
 
 // void data_setup() {
 //     Serial.begin(9600);
